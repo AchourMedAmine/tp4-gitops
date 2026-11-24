@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  labels:
+    app: podinfo
+spec:
+  replicas: 1                      # overridden by each overlay
+  progressDeadlineSeconds: 60      # after 60s without progress → Deployment "failed" → ArgoCD shows Degraded (default is 600s)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0            # never remove an old pod before a new one is Ready
+      maxSurge: 1                  # create at most 1 extra pod during an update
+  selector:
+    matchLabels:
+      app: podinfo                 # which pods this Deployment owns
+  template:
+    metadata:
+      labels:
+        app: podinfo               # must match the selector above
+    spec:
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.16.0
+          command: ["./podinfo", "--port=9898", "--port-metrics=9797"]
+          ports:
+            - name: http
+              containerPort: 9898  # the web app
+            - name: http-metrics
+              containerPort: 9797  # /metrics for Prometheus (used in Phase 4)
+          readinessProbe:          # "can I receive traffic?"
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          livenessProbe:           # "am I still alive? if not, restart me"
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }    # what the scheduler reserves
+            limits:   { cpu: 250m, memory: 128Mi }  # hard ceiling
