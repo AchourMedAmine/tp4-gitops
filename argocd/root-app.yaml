@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AchourMedAmine/tp4-gitops.git
+    targetRevision: main
+    path: argocd/apps                 # the folder of Applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd                 # Applications live in the argocd namespace
+  syncPolicy:
+    automated:
+      prune: true                     # file removed from argocd/apps → Application removed
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:                  # see "The scenario 4 trap" below
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /spec/syncPolicy/automated

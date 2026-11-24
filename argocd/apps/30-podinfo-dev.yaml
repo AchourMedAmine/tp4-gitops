@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"            # NEW: after the project
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io     # NEW: see below
+spec:
+  project: workloads                             # CHANGED: was "default"
+  source:
+    repoURL: https://github.com/AchourMedAmine/tp4-gitops.git
+    targetRevision: main
+    path: apps/podinfo/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podinfo-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

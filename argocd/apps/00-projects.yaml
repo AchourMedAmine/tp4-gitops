@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: workloads
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"    # create this BEFORE the apps (see Step 4)
+spec:
+  description: Business applications deployed through GitOps
+  sourceRepos:                            # allowed Git sources
+    - https://github.com/AchourMedAmine/tp4-gitops.git
+  destinations:                           # allowed targets
+    - server: https://kubernetes.default.svc
+      namespace: "podinfo-*"              # only namespaces starting with podinfo-
+  clusterResourceWhitelist:               # cluster-wide objects allowed
+    - group: ""
+      kind: Namespace                     # only Namespaces (needed for CreateNamespace=true)
