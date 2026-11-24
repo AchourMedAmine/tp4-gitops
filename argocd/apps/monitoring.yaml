@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # The recipe: a Helm chart from the Prometheus community, not from your repo
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 93.9.0          # fixed version, so it never changes by surprise
+    helm:
+      releaseName: prometheus
+      valuesObject:                 # your settings for the recipe
+        prometheus:
+          prometheusSpec:
+            # Watch ALL ServiceMonitors, not only those made by this chart (needed later)
+            serviceMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            scrapeInterval: 15s     # collect numbers every 15 s
+        grafana:
+          sidecar:
+            dashboards:
+              enabled: true         # lets us store dashboards in Git later
+              searchNamespace: ALL
+        # k3s hides these internal components → turn them off, otherwise permanent "down" alerts
+        kubeEtcd:
+          enabled: false
+        kubeControllerManager:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        # In k3d the node is a Docker container → this mount doesn't work there
+        prometheus-node-exporter:
+          hostRootFsMount:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true        # some files of this recipe are too big for a normal apply
+  # Kubernetes fills these fields itself at runtime → don't treat that as a drift
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
