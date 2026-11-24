@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podinfo
+spec:
+  selector:
+    matchLabels:
+      app: podinfo            # find the Service with this label
+  endpoints:
+    - port: http-metrics      # the port NAME in service.yaml (9797)
+      path: /metrics
+      interval: 15s
