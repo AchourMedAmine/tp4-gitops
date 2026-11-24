@@ -8,4 +8,4 @@ images:                         # ...override the image tag (scenarios 1, 3, 5)
     newTag: "6.16.0"
 replicas:                       # ...override the replica count (scenarios 1, 5)
   - name: podinfo
-    count: 2
+    count: 4
